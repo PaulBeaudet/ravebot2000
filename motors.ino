@@ -1,43 +1,45 @@
 // motors.ino ~ Copyright 2015-2016 ~ Paul Beaudet MIT licence - see LICENCE
-#define SPD_L_PIN 10 // left motor pin 10: speed
-#define SPD_R_PIN 9  // right motor pin 9: speed 
-#define SPD_L_MOTOR OCR1A // left motor pin 10 register? speed
-#define SPD_R_MOTOR OCR1B // right motor pin 9 register? speed 
-#define DIR_L_MOTOR 8  // left motor pin for setting direction 
-#define DIR_R_MOTOR 7  // right motor pin for setting direction
+#define LEFT_SPEED_A  10 // left motor pin 10: speed
+#define RIGHT_SPEED_A 9  // right motor pin 9: speed
+#define LEFT_SPEED_B  5  // left motor pin for setting speed in other direction
+#define RIGHT_SPEED_B 6  // right motor pin for setting speed in other direction
 #define LEFT 0
 #define RIGHT 1
 
-// ### Basic motion functions ###
-
+// --- Basic motor functions ---
 void motorSetup(){ // set pin modes for motors
-  pinMode(SPD_L_PIN, OUTPUT);
-  pinMode(SPD_R_PIN, OUTPUT);
-  pinMode(DIR_L_MOTOR, OUTPUT);
-  pinMode(DIR_R_MOTOR, OUTPUT);
-  // wish I could tell you what following lines mean, included in zumo library
-  // for 328p and 34u4 which are prodominately the arduinos we are concered about
-  // TCCR1A = 0b10100000; // Timer 1 configuration: prescaler: clockI/O /1
-  // TCCR1B = 0b00010001; // outputs enabled / phase-correct PWM
-  // ICR1 = 400;          // top of 400 / PWM calc: 16Mhz / 1 / 2 / 400 =  20khz
+  pinMode(LEFT_SPEED_A, OUTPUT);
+  pinMode(RIGHT_SPEED_A, OUTPUT);
+  pinMode(LEFT_SPEED_B, OUTPUT);
+  pinMode(RIGHT_SPEED_B, OUTPUT);
 }
 
 // motors: 0 is stopped, 400 is full speed negitives are reverse speed
+// if your motor are going in wrong direction setup forward to false
+// then set forward to true when spd < 0
 void speedSet(int spd, boolean rightMotor){
-  boolean motorDirection = LOW; // indication of direction change
+  boolean forward = true;  // indication of direction change
   if(spd < 0){             // if reverse direction
     spd = -spd;            // speed actually needs to be positive
-    motorDirection = HIGH; // but direction needs to be reversed
+    forward = false;       // but direction needs to be reversed
   }
   if (spd > MAX_POWER){spd = MAX_POWER;} // speed can be on greater than 400
   if(rightMotor){
-    // OCR1B = spd;
-    analogWrite(SPD_R_PIN, spd);
-    digitalWrite(DIR_R_MOTOR, motorDirection);
+    if(forward){                       // going forward A pin gets set
+      analogWrite(RIGHT_SPEED_A, spd); // set A pin to our speed
+      analogWrite(RIGHT_SPEED_B, 0);   // set B pin back to low
+    } else {                           // going backward B pin gets set
+      analogWrite(RIGHT_SPEED_A, 0);
+      analogWrite(RIGHT_SPEED_B, spd);
+    }
   } else {
-    // OCR1A = spd;                  // manually set register? to speed
-    analogWrite(SPD_L_PIN, spd); 
-    digitalWrite(DIR_L_MOTOR, motorDirection); // set motor direction
+    if(forward){                      // going forward A pin gets set
+      analogWrite(LEFT_SPEED_A, spd); // set A pin to our speed
+      analogWrite(LEFT_SPEED_B, 0);   // set B pin back to low
+    } else {                          // going backward B pin gets set
+      analogWrite(LEFT_SPEED_A, 0);
+      analogWrite(LEFT_SPEED_B, spd);
+    }
   }
 }
 

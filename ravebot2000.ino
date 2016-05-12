@@ -4,43 +4,64 @@
 #include <IRLibRData.h>
 #include <IRLibTimer.h>
 #include "functionPointer.h" // needed for timer functions
+
+/*
+ *  ~ Constants ~ never changing numbers
+ * NOTE: both #define and const can create Constants
+ * there are valid technical reasons for using either
+ * most people use only one or the other out of lazyness/habit
+ * when in doubt use const
+ */
 #define MAX_POWER 255
-// speedsSet(left, right); //takes a number between negitive MAX_POWER and positive MAX_POWER 
+// EXAMPLE -> speedsSet(left, right); //takes a number between negitive MAX_POWER and positive MAX_POWER
 #define OFFSET 2    // add 1000 for a right trim offset
 #define LED_PIN 13  // Built in Arduino LED
-
 // IR codes for our remote
-const long ONWARD       = 0xFF18E7; // 16718055
+const long ONWARD       = 0xFF18E7; //<-in base 16 ~16718055<- in base 10
 const long STOP         = 0xFF38C7; // 16726215
 const long BACKNUP      = 0xFF4AB5; // 16730805
 const long RIGHT        = 0xFF5AA5; // 16734885
 const long LEFT         = 0xFF10EF; // 16716015
 const long REMOTETOGGLE = 0xFFE21D; // 16769565
+
+/*
+ * NOTE about IR sensor: Bill had to make sure eletromagnetic waves from
+ * motors were sheilded from IR sensor Jumpers.
+ * (he did this by moving them away from motors)
+ * an effective way to do this is to wrap the 3 IR jumpers in aluminum foil
+ * ... not sure if it would need to be grounded or not..
+ * but a floating wrap would be better than nothing to block EM waves
+ */
+
 #define IR_PIN 2
 IRrecv My_Receiver(IR_PIN); // Create a receiver object to listen on pin
 IRdecode My_Decoder;        // Create a decoder object
 
-// -------------- MAIN FUNCTIONS -------------------------------
+// ----------- MAIN FUNCTIONS (all the important stuf) --------------------------
 void setup() {
+  // --- seting stuff up ---
   Serial.begin(9600);              // establish serial speed between arduino & computer
   pinMode(LED_PIN, OUTPUT);        // make sure LED understands its role
   pingSetup();                     // setup pingy pingy
   motorSetup();                    // setup motors
-  speedsSet(MAX_POWER, MAX_POWER); // test our motors 
-  // setTimeout(stopMotors, 2000); // stop motors in a couple of seconds
+  fullSpeedAhead();                // Explore forward to start our journey
+  My_Receiver.enableIRIn();        // turn on IR sensor
+  // ----- setting actions into motion -------------------
   setInterval(blinkTheLed, 500);   // blinks LED
+  // setTimeout(fullSpeedBackwards, 5000);
+  setTimeout(stopMotors, 10000); // stop motors in a couple of seconds
   // setInterval(readoutPing, 1000); // serial readout of ping
   setInterval(reactToPing, 1000);  // reaction to ping
-  My_Receiver.enableIRIn();        // turn on IR sensor
 }
 
-void loop() {
+void loop() {    // Place to continually check what needs to be done
   remoteReact(); // react to events from an IR remote
-  todoChecker(); // ravebot checks his todo list: timer.ino
+  todoChecker(); // ravebot checks todo list, needed for setIterval and setTimeout: timer.ino
 }
-//------------------------------------------------------------
+//-----------(done important stuff, implementation details below)------------------------
 
-/* NOTES ABOUT VARIABLES: blinkTheLed uses a toggle variable that could be created in various ways
+/*
+ * NOTES ABOUT VARIABLES: blinkTheLed uses a toggle variable that could be created in various ways
  * The toggle outside of the function could be modified anywhere in the program: GLOBAL SCOPE
  * Global scope is dangerous, too easy to lose track of where variables are being modified
  * limiting veriables to just be accessed by independent functions keeps things safe
@@ -66,14 +87,16 @@ void reactToPing(){
   int distance = pingGetDistance();
   if(distance < 20){
     speedsSet(MAX_POWER, -MAX_POWER); // take a turn
-    setTimeout(stopMotors, 240);      // set motors to stop in X amount of milliseconds
+    setTimeout(fullSpeedAhead, 240);      // set motors to stop in X amount of milliseconds
   }
 }
 
-void turnTheBot(){
-  speedsSet(200, 200);
-}
+// some functions for directions
+void fullSpeedAhead(){    speedsSet(MAX_POWER, MAX_POWER);}
+void fullSpeedBackwards(){speedsSet(-MAX_POWER, -MAX_POWER);}
+void turnTheBot(){        speedsSet(-MAX_POWER, MAX_POWER);}
 
+// using the IR remote (UNTESTED)
 void remoteReact(){                            // react to IR remote commands
   static boolean usingRemote = false;          // detects whether remote is being used or not
  
@@ -84,9 +107,9 @@ void remoteReact(){                            // react to IR remote commands
       if(My_Decoder.value == ONWARD){          // 1? button
         speedsSet(MAX_POWER, MAX_POWER);       // forward march!
       } else if (My_Decoder.value == STOP){    // 5? button
-        stopMotors();                          // Arret!
+        stopMotors();                          // Arret! (stop)
       } else if (My_Decoder.value == RIGHT){   // 6? button
-        speedsSet(MAX_POWER, (MAX_POWER/2));   // right here right now
+        speedsSet(MAX_POWER, (MAX_POWER/2));   // right here right now (right turn)
       } else if (My_Decoder.value == LEFT){    // 4? button
         speedsSet((MAX_POWER/2), MAX_POWER);   // to the left to the left
       } else if (My_Decoder.value == BACKNUP){ // 8? button
