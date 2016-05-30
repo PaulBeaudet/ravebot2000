@@ -1,9 +1,13 @@
 /* timer.ino ~ Copyright 2015-2016 ~ Paul Beaudet MIT licence - see LICENCE
+ * Requires functionPointer.h -> #include "functionPointer.h" (in main sketch)
+ * (add file "functionPointer.h" to project that includes following line)
+ * typedef void (*funcPointer)(void);
+ *
  * Javascript style async event handling - gives three main functions
- * todoChecker(); // checks if todos need to be run place in main loop: NO BLOCKING, event handler
- * setTimeout();  // pass function and durration of todo: runs onces, returns timerID
- * setInterval(); // pass function and durration of todo: runs repetitively, returns timerID
- * todos[timerID] = 0; // cancels timer
+ * todoChecker();               // checks if todos need to be run place in main loop: NON BLOCKING, event handler
+ * setTimeout(callback, time);  // pass function and durration of todo: runs onces, returns timerID
+ * setInterval(callback, time); // pass function and durration of todo: runs repetitively, returns timerID
+ * todos[timerID] = 0;          // cancels timer
  */
 #define MAX_TIMERS 10           // must be less than 255, you'll prob run out of ram w/more anyhow
 
@@ -15,7 +19,7 @@ long unsigned long startTime[MAX_TIMERS]; // when todo was first called
 void todoChecker(){ // checks timer to see if a timeout or set interval event need to be executed
   unsigned long currentTime = millis();          // measure current time in milliseconds once
   for(byte i = 0; i < MAX_TIMERS; i++){          // for all timers
-    if(todos[i]){                                 // if there is a todo for this element of list
+    if(todos[i]){                                // if there is a todo for this element of list
       if(currentTime - startTime[i] >= wait[i]){ // and time has elapsed from start
         (*todos[i])();                           // run this todo!
         if(repeat[i]){                           // if its repeating
